@@ -8,13 +8,13 @@ using RabbitMQ.Client.Exceptions;
 namespace EasyNetQ.Consumer
 {
     /// <summary>
-    /// A strategy for dealing with failed messages. When a message consumer thows, HandleConsumerError is invoked.
+    /// A strategy for dealing with failed messages. When a message consumer throws, HandleConsumerError is invoked.
     /// 
-    /// The general priciple is to put all failed messages in a dedicated error queue so that they can be 
+    /// The general principle is to put all failed messages in a dedicated error queue so that they can be 
     /// examined and retried (or ignored).
     /// 
     /// Each failed message is wrapped in a special system message, 'Error' and routed by a special exchange
-    /// named after the orignal message's routing key. This is so that ad-hoc queues can be attached for
+    /// named after the original message's routing key. This is so that ad-hoc queues can be attached for
     /// errors on specific message types.
     /// 
     /// Each exchange is bound to the central EasyNetQ error queue.
