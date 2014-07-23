@@ -79,13 +79,13 @@ namespace EasyNetQ.Consumer
             IDictionary<string, object> arguments = new Dictionary<string, object>
                 {
                     {"x-priority", configuration.Priority},
-                    {"x-cancel-on-ha-failover", true}
+                    {"x-cancel-on-ha-failover", configuration.CancelOnHaFailover || connectionConfiguration.CancelOnHaFailover}
                 };
             try
             {
                 Model = connection.CreateModel();
 
-                Model.BasicQos(0, connectionConfiguration.PrefetchCount, false);
+                Model.BasicQos(0, configuration.PrefetchCount, false);
 
                 Model.BasicConsume(
                     queue.Name,         // queue
@@ -94,8 +94,8 @@ namespace EasyNetQ.Consumer
                     arguments,          // arguments
                     this);              // consumer
 
-                logger.InfoWrite("Declared Consumer. queue='{0}', consumer tag='{1}' prefetchcount={2} priority={3}",
-                                  queue.Name, consumerTag, connectionConfiguration.PrefetchCount, configuration.Priority);
+                logger.InfoWrite("Declared Consumer. queue='{0}', consumer tag='{1}' prefetchcount={2} priority={3} x-cancel-on-ha-failover={4}",
+                                  queue.Name, consumerTag, connectionConfiguration.PrefetchCount, configuration.Priority, configuration.CancelOnHaFailover);
             }
             catch (Exception exception)
             {

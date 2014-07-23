@@ -15,17 +15,17 @@ namespace EasyNetQ.ConnectionString
         public static Parser<ushort> Number = Parse.Number.Select(ushort.Parse);
 
         public static Parser<bool> Bool =
-            (Parse.String("true").Or(Parse.String("false"))).Text().Select(x => x == "true");
+           (Parse.String("true").Or(Parse.String("True")).Or(Parse.String("false")).Or(Parse.String("False"))).Text().Select(x => x == "true" || x == "True");
 
         public static Parser<IHostConfiguration> Host =
             from host in Parse.Char(c => c != ':' && c != ';' && c != ',', "host").Many().Text()
             from port in Parse.Char(':').Then(_ => Number).Or(Parse.Return((ushort)0))
-            select new HostConfiguration {Host = host, Port = port};
+            select new HostConfiguration { Host = host, Port = port };
 
         public static Parser<IEnumerable<IHostConfiguration>> Hosts = Host.ListDelimitedBy(',');
 
         private static Uri result;
-        public static Parser<Uri> AMQP = Parse.CharExcept(';').Many().Text().Where(x => Uri.TryCreate(x,UriKind.Absolute, out result)).Select(_ => new Uri(_));
+        public static Parser<Uri> AMQP = Parse.CharExcept(';').Many().Text().Where(x => Uri.TryCreate(x, UriKind.Absolute, out result)).Select(_ => new Uri(_));
 
         public static Parser<UpdateConfiguration> Part = new List<Parser<UpdateConfiguration>>
         {
@@ -41,12 +41,13 @@ namespace EasyNetQ.ConnectionString
             BuildKeyValueParser("timeout", Number, c => c.Timeout),
             BuildKeyValueParser("publisherConfirms", Bool, c => c.PublisherConfirms),
             BuildKeyValueParser("persistentMessages", Bool, c => c.PersistentMessages),
+            BuildKeyValueParser("cancelOnHaFailover", Bool, c => c.CancelOnHaFailover),
             BuildKeyValueParser("product", Text, c => c.Product),
             BuildKeyValueParser("platform", Text, c => c.Platform)
         }.Aggregate((a, b) => a.Or(b));
 
         public static Parser<UpdateConfiguration> AMQPAlone =
-            AMQP.Select(_ => (Func<ConnectionConfiguration, ConnectionConfiguration>) (configuration
+            AMQP.Select(_ => (Func<ConnectionConfiguration, ConnectionConfiguration>)(configuration
                                                                                        =>
                 {
                     configuration.AMQPConnectionString = _;
@@ -115,6 +116,6 @@ namespace EasyNetQ.ConnectionString
                 from head in parser
                 from tail in Parse.Char(delimiter).Then(_ => parser).Many()
                 select head.Cons(tail);
-        } 
+        }
     }
 }

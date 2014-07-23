@@ -57,15 +57,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
-    <Reference Include="RabbitMQ.Client, Version=3.3.0.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
+    <Reference Include="RabbitMQ.Client, Version=3.3.2.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\RabbitMQ.Client.3.3.0\lib\net30\RabbitMQ.Client.dll</HintPath>
+      <HintPath>..\packages\RabbitMQ.Client.3.3.2\lib\net30\RabbitMQ.Client.dll</HintPath>
     </Reference>
     <Reference Include="Rhino.Mocks">
       <HintPath>..\packages\RhinoMocks.3.6.1\lib\net\Rhino.Mocks.dll</HintPath>
@@ -94,9 +95,16 @@
     <Compile Include="ConsumeTests\When_a_message_is_received.cs" />
     <Compile Include="ConsumeTests\When_a_polymorphic_message_is_delivered_to_the_consumer.cs" />
     <Compile Include="ConsumeTests\When_consume_is_called.cs" />
+    <Compile Include="DefaultMessageSerializationStrategyTests.cs" />
     <Compile Include="Integration\AmqpStringSizeExperiments.cs" />
     <Compile Include="Integration\AutoSubscriberIntegrationTests.cs" />
     <Compile Include="Integration\ChannelExceptionBug.cs" />
+    <Compile Include="Integration\SubscribeWithExpiresTests.cs" />
+    <Compile Include="MessageVersioningTests\MessageTypePropertyTests.cs" />
+    <Compile Include="MessageVersioningTests\MessageVersioningExtensionsTests.cs" />
+    <Compile Include="MessageVersioningTests\MessageVersionStackTests.cs" />
+    <Compile Include="MessageVersioningTests\MyMessageV2.cs" />
+    <Compile Include="MessageVersioningTests\VersionedPublishExchangeDeclareStrategyTests.cs" />
     <Compile Include="MessageWithVeryVEryVEryLongNameThatWillMostCertainlyBreakAmqpsSilly255CharacterNameLimitThatIsAlmostCertainToBeReachedWithGenericTypes.cs" />
     <Compile Include="Integration\When_a_message_with_a_long_type_name_is_published.cs" />
     <Compile Include="ProducerTests\When_a_request_is_sent_but_an_exception_is_thrown_by_responder.cs" />
@@ -164,10 +172,12 @@
     <Compile Include="RabbitHutchTests.cs" />
     <Compile Include="SubscribeTests.cs" />
     <Compile Include="TaskExtensions.cs" />
+    <Compile Include="StubCorrelationIdGenerator.cs" />
     <Compile Include="TestExtensions.cs" />
     <Compile Include="TestMessage.cs" />
     <Compile Include="DefaultClusterHostSelectionStrategyTests.cs" />
     <Compile Include="TypeNameSerializerTests.cs" />
+    <Compile Include="MessageVersioningTests\VersionedMessageSerializationStrategyTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EasyNetQ.Management.Client\EasyNetQ.Management.Client.csproj">
@@ -203,7 +213,9 @@
   <ItemGroup>
     <Content Include="Integration\LongRunningServer.js" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
