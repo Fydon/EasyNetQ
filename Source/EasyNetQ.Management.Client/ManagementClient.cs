@@ -7,6 +7,7 @@ using EasyNetQ.Management.Client.Model;
 using EasyNetQ.Management.Client.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System.Text.RegularExpressions;
 
 namespace EasyNetQ.Management.Client
 {
@@ -20,6 +21,8 @@ namespace EasyNetQ.Management.Client
 
         private readonly bool runningOnMono;
         private readonly Action<HttpWebRequest> configureRequest;
+        private readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(20);
+        private readonly TimeSpan timeout;
 
         static ManagementClient()
         {
@@ -51,16 +54,36 @@ namespace EasyNetQ.Management.Client
         }
 
         public ManagementClient(
-            string hostUrl, 
-            string username, 
-            string password, 
-            int portNumber = 15672, 
+            string hostUrl,
+            string username,
+            string password,
+            int portNumber = 15672,
             bool runningOnMono = false,
-            Action<HttpWebRequest> configureRequest = null)
+            TimeSpan? timeout = null,
+            Action<HttpWebRequest> configureRequest = null,
+            bool ssl = false)
         {
+            var urlRegex = new Regex(@"^(http|https):\/\/.+\w$");
+            Uri urlUri = null;
             if (string.IsNullOrEmpty(hostUrl))
             {
                 throw new ArgumentException("hostUrl is null or empty");
+            }
+            if (ssl)
+            {
+                if (hostUrl.Contains("http://"))
+                    throw new ArgumentException("hostUrl is illegal");
+                hostUrl = hostUrl.Contains("https://") ? hostUrl : "https://" + hostUrl;
+            }
+            else
+            {
+                if (hostUrl.Contains("https://"))
+                    throw new ArgumentException("hostUrl is illegal");
+                hostUrl = hostUrl.Contains("http://") ? hostUrl : "http://" + hostUrl;
+            }
+            if (!urlRegex.IsMatch(hostUrl) || !Uri.TryCreate(hostUrl, UriKind.Absolute, out urlUri))
+            {
+                throw new ArgumentException("hostUrl is illegal");
             }
             if (string.IsNullOrEmpty(username))
             {
@@ -74,19 +97,18 @@ namespace EasyNetQ.Management.Client
             {
                 configureRequest = x => { };
             }
-
             this.hostUrl = hostUrl;
             this.username = username;
             this.password = password;
             this.portNumber = portNumber;
-
+            this.timeout = timeout ?? defaultTimeout;
             this.runningOnMono = runningOnMono;
             this.configureRequest = configureRequest;
 
-			if (!runningOnMono) 
-			{
-	            LeaveDotsAndSlashesEscaped();
-			}
+            if (!runningOnMono)
+            {
+                LeaveDotsAndSlashesEscaped();
+            }
         }
 
         public Overview GetOverview()
@@ -526,13 +548,14 @@ namespace EasyNetQ.Management.Client
         {
             var request = CreateRequestForPath(path);
 
-            var response = request.GetHttpResponse();
-            if (response.StatusCode != HttpStatusCode.OK)
+            using (var response = request.GetHttpResponse())
             {
-                throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                }
+                return DeserializeResponse<T>(response);   
             }
-
-            return DeserializeResponse<T>(response);
         }
 
         private TResult Post<TItem, TResult>(string path, TItem item)
@@ -542,13 +565,15 @@ namespace EasyNetQ.Management.Client
 
             InsertRequestBody(request, item);
 
-            var response = request.GetHttpResponse();
-            if (!(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created))
+            using(var response = request.GetHttpResponse())
             {
-                throw new UnexpectedHttpStatusCodeException(response.StatusCode);
-            }
+                if (!(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created))
+                {
+                    throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                }
 
-            return DeserializeResponse<TResult>(response);
+                return DeserializeResponse<TResult>(response);
+            }
         }
 
         private void Delete(string path)
@@ -556,10 +581,12 @@ namespace EasyNetQ.Management.Client
             var request = CreateRequestForPath(path);
             request.Method = "DELETE";
 
-            var response = request.GetHttpResponse();
-            if (response.StatusCode != HttpStatusCode.NoContent)
+            using (var response = request.GetHttpResponse())
             {
-                throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                if (response.StatusCode != HttpStatusCode.NoContent)
+                {
+                    throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                }   
             }
         }
 
@@ -569,10 +596,12 @@ namespace EasyNetQ.Management.Client
             request.Method = "PUT";
             request.ContentType = "application/json";
 
-            var response = request.GetHttpResponse();
-            if (response.StatusCode != HttpStatusCode.NoContent)
+            using (var response = request.GetHttpResponse())
             {
-                throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                if (response.StatusCode != HttpStatusCode.NoContent)
+                {
+                    throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                }
             }
         }
 
@@ -583,10 +612,12 @@ namespace EasyNetQ.Management.Client
 
             InsertRequestBody(request, item);
 
-            var response = request.GetHttpResponse();
-            if (response.StatusCode != HttpStatusCode.NoContent)
+            using (var response = request.GetHttpResponse())
             {
-                throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                if (response.StatusCode != HttpStatusCode.NoContent)
+                {
+                    throw new UnexpectedHttpStatusCodeException(response.StatusCode);
+                }
             }
         }
 
@@ -649,7 +680,9 @@ namespace EasyNetQ.Management.Client
 			}
 
 			var request = (HttpWebRequest)WebRequest.Create(uri);
-            request.Credentials = new NetworkCredential(username, password);
+            request.Credentials = new NetworkCredential(username, password); 
+            request.Timeout = request.ReadWriteTimeout = (int)timeout.TotalMilliseconds;
+
             configureRequest(request);
 
             return request;
